@@ -1,0 +1,83 @@
+#include "choosescene.h"
+#include <QIcon>
+#include <QMenuBar>
+#include <QPainter>
+#include "mypushbtn.h"
+#include <QDebug>
+#include <QTimer>
+#include <QLabel>
+#include <QSound>
+
+chooseScene::chooseScene(QWidget *parent) :QMainWindow(parent)
+{
+    QSound* s = new QSound(":/new/res/TapButtonSound.wav",this);
+    setFixedSize(320,588);
+    setWindowTitle("Choose Level");
+    //setWindowIcon(QIcon(":/new/res/title_icon.png"));
+    setWindowIcon(QIcon(":/new/res/Coin0001.png"));
+    //菜单栏
+    QMenuBar *bar = menuBar();
+    this->setMenuBar(bar);
+    QMenu* menu = bar->addMenu("开始");
+    QAction* action = menu->addAction("退出");
+
+    MyPushbtn*backBtn = new MyPushbtn(":/new/res/BackButton.png",":/new/res/BackButtonSelected.png");
+    backBtn->setParent(this);
+    backBtn->move(this->width() - backBtn->width(),this->height() - backBtn->height());
+
+
+    _playScene = nullptr;
+
+    for(int i = 0;i < 20;i ++)
+    {
+        MyPushbtn*btn = new MyPushbtn(":/new/res/LevelIcon.png");
+        btn->setParent(this);
+        btn->move(25 + (i % 4)*70,135 + (i /4)*70);
+
+        QLabel *label = new QLabel;
+        label->setParent(this);
+        label->setFixedSize(btn->width(),btn->height());
+        label->setAlignment(Qt::AlignHCenter|Qt::AlignVCenter);
+        label->move( 25 + (i % 4)*70,135 + (i /4)*70 );
+        label->setText(QString::number(i + 1));
+        //信号穿透
+        label->setAttribute(Qt::WA_TransparentForMouseEvents);
+
+        connect(btn,&MyPushbtn::clicked,[=](){
+            s->play();
+            this->hide();
+            _playScene = new playScene(i+1);
+            _playScene->setGeometry(this->geometry());
+            _playScene->show();
+            connect(_playScene,&playScene::BackClick,[=](){
+                this->setGeometry(_playScene->geometry());
+                _playScene->close();
+
+                delete _playScene;
+                _playScene = nullptr;
+                this->show();
+            });
+        });
+    }
+    //信号与槽link
+    connect(action,&QAction::triggered,[=](){
+        this->close();
+    });
+    connect(backBtn,&MyPushbtn::clicked,[=](){
+        QTimer::singleShot(400,[=](){
+            emit(this->BackClicked());
+        });
+
+    });
+
+
+}
+void  chooseScene::paintEvent(QPaintEvent *)
+{
+    QPainter painter(this);
+    QPixmap pic;
+    pic.load(":/new/res/OtherSceneBg.png");
+    painter.drawPixmap(0,0,this->width(),this->height(),pic);
+    pic.load(":/new/res/Title.png");
+    painter.drawPixmap(20,25,pic);
+}
